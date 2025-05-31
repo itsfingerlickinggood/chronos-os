@@ -1,4 +1,5 @@
-#include <stdio.h>
+#include "kernel/vga.h"       // For vga_init
+#include "kernel/printf.h"    // For kprintf
 #include "kernel/scheduler.h" // Includes pcb_t, task_state, create_task, schedule, current_task, tasks, MAX_TASKS
 #include "kernel/memory.h"    // Includes kmalloc, kfree, memory_init
 #include "kernel/ai_core.h"   // Not used in this part, but kept
@@ -14,13 +15,13 @@ void task1_func(void) {
     }
 
     for (int i = 0; i < 3; ++i) { // Reduced cycles for quicker demo
-        printf("Task 1 (ID: %d) executing cycle %d\n", my_id, i);
+        kprintf("Task 1 (ID: %d) executing cycle %d\n", my_id, i);
         // Simulate some work by delaying
         for (volatile int j = 0; j < 1000000; ++j);
         // In a cooperative model, a task would yield here.
         // Our kmain loop calls schedule() externally.
     }
-    printf("Task 1 (ID: %d) COMPLETED\n", my_id);
+    kprintf("Task 1 (ID: %d) COMPLETED\n", my_id);
     if (current_task && current_task->id == my_id) {
         current_task->state = TASK_TERMINATED;
     }
@@ -33,10 +34,10 @@ void task2_func(void) {
     }
 
     for (int i = 0; i < 3; ++i) { // Reduced cycles
-        printf("Task 2 (ID: %d) executing cycle %d\n", my_id, i);
+        kprintf("Task 2 (ID: %d) executing cycle %d\n", my_id, i);
         for (volatile int j = 0; j < 800000; ++j);
     }
-    printf("Task 2 (ID: %d) COMPLETED\n", my_id);
+    kprintf("Task 2 (ID: %d) COMPLETED\n", my_id);
     if (current_task && current_task->id == my_id) {
         current_task->state = TASK_TERMINATED;
     }
@@ -47,9 +48,9 @@ void task3_func(void) {
     if (current_task && current_task->instruction_pointer == (uintptr_t)task3_func) {
         my_id = current_task->id;
     }
-    printf("Task 3 (ID: %d) executing its single action and completing.\n", my_id);
+    kprintf("Task 3 (ID: %d) executing its single action and completing.\n", my_id);
     for (volatile int j = 0; j < 500000; ++j);
-    printf("Task 3 (ID: %d) COMPLETED\n", my_id);
+    kprintf("Task 3 (ID: %d) COMPLETED\n", my_id);
     if (current_task && current_task->id == my_id) {
         current_task->state = TASK_TERMINATED;
     }
@@ -58,39 +59,42 @@ void task3_func(void) {
 
 // --- Kernel Main ---
 int kmain() {
+    vga_init(); // Initialize VGA display first
+    kprintf("Kernel main: VGA initialized.\n");
+
     memory_init(); // Initialize the memory manager
-    printf("Kernel main: Memory manager started.\n");
+    kprintf("Kernel main: Memory manager started.\n");
 
     task_init_system(); // Initialize the scheduler system
-    printf("Kernel main: Scheduler system initialized.\n");
+    kprintf("Kernel main: Scheduler system initialized.\n");
 
     // Run memory tests (optional, can be commented out for scheduler focus)
-    // run_memory_tests();
-    // printf("Kernel main: Memory tests complete.\n");
+    // run_memory_tests(); // This would need kprintf internally too
+    // kprintf("Kernel main: Memory tests complete.\n");
 
-    printf("\nkmain: Creating tasks...\n");
+    kprintf("\nkmain: Creating tasks...\n");
     pid_t pid1 = create_task(task1_func, 0); // priority 0
     if (pid1 > 0) {
-        printf("kmain: Created task1_func with PID %d\n", pid1);
+        kprintf("kmain: Created task1_func with PID %d\n", pid1);
     } else {
-        printf("kmain: Failed to create task1_func (error %d)\n", pid1);
+        kprintf("kmain: Failed to create task1_func (error %d)\n", pid1);
     }
 
     pid_t pid2 = create_task(task2_func, 0); // priority 0
     if (pid2 > 0) {
-        printf("kmain: Created task2_func with PID %d\n", pid2);
+        kprintf("kmain: Created task2_func with PID %d\n", pid2);
     } else {
-        printf("kmain: Failed to create task2_func (error %d)\n", pid2);
+        kprintf("kmain: Failed to create task2_func (error %d)\n", pid2);
     }
 
     pid_t pid3 = create_task(task3_func, 0); // priority 0
     if (pid3 > 0) {
-        printf("kmain: Created task3_func with PID %d\n", pid3);
+        kprintf("kmain: Created task3_func with PID %d\n", pid3);
     } else {
-        printf("kmain: Failed to create task3_func (error %d)\n", pid3);
+        kprintf("kmain: Failed to create task3_func (error %d)\n", pid3);
     }
 
-    printf("\nkmain: Starting simulated cooperative scheduling loop...\n");
+    kprintf("\nkmain: Starting simulated cooperative scheduling loop...\n");
     // This loop simulates a timer interrupt or cooperative yields calling schedule().
     // The tasks themselves run to completion when their function is "called".
     // This is a high-level simulation of the scheduler's decision-making.
@@ -99,7 +103,7 @@ int kmain() {
         schedule(); // Decide who runs next
 
         if (current_task != NULL) {
-            printf("kmain [Tick %2d]: Scheduled Task ID: %d, State: %d, IP: %p\n",
+            kprintf("kmain [Tick %2d]: Scheduled Task ID: %d, State: %d, IP: %p\n",
                    i, current_task->id, current_task->state, (void*)current_task->instruction_pointer);
 
             // SIMULATE TASK EXECUTION FOR ONE "SLICE"
@@ -132,22 +136,22 @@ int kmain() {
 
                  // The following direct call simulates dispatching to the task.
                  // It will run to completion.
-                 printf("kmain [Tick %2d]: Dispatching to Task ID: %d...\n", i, current_task->id);
+                 kprintf("kmain [Tick %2d]: Dispatching to Task ID: %d...\n", i, current_task->id);
                  task_function(); // Execute the current task's function
-                 printf("kmain [Tick %2d]: Task ID: %d returned from execution.\n", i, current_task->id);
+                 kprintf("kmain [Tick %2d]: Task ID: %d returned from execution.\n", current_task->id, i); // Corrected order of args
             }
 
 
             // Check if the task terminated itself during its run
             if (current_task->state == TASK_TERMINATED) {
-                printf("kmain [Tick %2d]: Task ID %d has self-terminated. Cleaning up.\n", i, current_task->id);
+                kprintf("kmain [Tick %2d]: Task ID %d has self-terminated. Cleaning up.\n", i, current_task->id);
                 kfree(current_task->stack_base); // Free its stack
                 current_task->stack_base = NULL;
                 current_task->state = TASK_UNUSED;   // Mark PCB as unused
                 // current_task will be NULL in the next iteration if schedule() doesn't find another
             }
         } else {
-            printf("kmain [Tick %2d]: No task scheduled (CPU Idle).\n", i);
+            kprintf("kmain [Tick %2d]: No task scheduled (CPU Idle).\n", i);
             // Check if all tasks are done
             int all_done = 1;
             for (int task_idx = 0; task_idx < MAX_TASKS; ++task_idx) {
@@ -157,7 +161,7 @@ int kmain() {
                 }
             }
             if (all_done) {
-                printf("kmain: All tasks are unused. Ending simulation.\n");
+                kprintf("kmain: All tasks are unused. Ending simulation.\n");
                 break;
             }
         }
@@ -166,11 +170,11 @@ int kmain() {
         for (volatile int k = 0; k < 100000; ++k); // Shorter delay for faster simulation
     }
 
-    printf("\nkmain: Simulated scheduling loop finished.\n");
-    printf("Final PCB States:\n");
+    kprintf("\nkmain: Simulated scheduling loop finished.\n");
+    kprintf("Final PCB States:\n");
     for (int i = 0; i < MAX_TASKS; ++i) {
         if (tasks[i].id != 0) { // Print only potentially used tasks
-            printf("  PCB %d: PID %d, State %d, Stack %p\n",
+            kprintf("  PCB %d: PID %d, State %d, Stack %p\n",
                    i, tasks[i].id, tasks[i].state, tasks[i].stack_base);
         }
     }

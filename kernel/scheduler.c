@@ -1,7 +1,8 @@
 #include "kernel/scheduler.h"
 #include "kernel/memory.h" // For kmalloc/kfree for task stacks (used in create_task)
+#include "kernel/printf.h" // For kprintf
 #include <stddef.h>       // For NULL
-#include <stdio.h>        // For printf (temporary for debugging)
+// #include <stdio.h>     // No longer needed if all printf are replaced
 
 // --- Static global variables for task management ---
 #define MAX_TASKS 32 // Maximum number of tasks the system can handle
@@ -32,7 +33,7 @@ void task_init_system(void) {
     current_task = NULL;
     ready_queue_head = NULL;
     next_pid = 1; // Start PIDs from 1
-    printf("Scheduler initialized. Max tasks: %d\n", MAX_TASKS);
+    kprintf("Scheduler initialized. Max tasks: %d\n", MAX_TASKS);
 }
 
 // --- Ready Queue Management ---
@@ -45,7 +46,7 @@ void task_init_system(void) {
  */
 static void enqueue_task(pcb_t* task) {
     if (!task) {
-        printf("enqueue_task: Attempted to enqueue a NULL task.\n");
+        kprintf("enqueue_task: Attempted to enqueue a NULL task.\n");
         return;
     }
     if (task->state != TASK_UNUSED && task->state != TASK_TERMINATED && task->state != TASK_WAITING && task_state != TASK_SLEEPING) {
@@ -53,7 +54,7 @@ static void enqueue_task(pcb_t* task) {
         // Or tasks that are being moved from waiting/sleeping to ready.
         // For simplicity here, we assume it's a new or unblocked task.
         // A more robust check might be needed depending on how tasks are created/managed.
-         printf("enqueue_task: Task %d is not in a state to be enqueued (state: %d).\n", task->id, task->state);
+         kprintf("enqueue_task: Task %d is not in a state to be enqueued (state: %d).\n", task->id, task->state);
         // return; // For now, let's allow re-enqueuing for flexibility, but log it.
     }
 
@@ -121,7 +122,7 @@ void schedule(void) {
             // - Its PCB should be marked TASK_UNUSED by terminate_task().
             // For now, we just acknowledge it and don't re-enqueue.
             // A call to terminate_task should have handled cleanup.
-             printf("schedule: Task %d was TERMINATED. It will not be re-enqueued.\n", prev_task->id);
+             kprintf("schedule: Task %d was TERMINATED. It will not be re-enqueued.\n", prev_task->id);
         }
         // If prev_task->state is TASK_WAITING or TASK_SLEEPING, it means the task blocked itself.
         // It should have been removed from the ready queue by block_task() or similar.
@@ -213,7 +214,7 @@ pid_t create_task(void (*entry_point)(void), int priority) {
     }
 
     if (new_task_pcb == NULL) {
-        printf("create_task: No unused PCBs available!\n");
+        kprintf("create_task: No unused PCBs available!\n");
         return -1; // Error code for no free PCBs
     }
 
@@ -221,7 +222,7 @@ pid_t create_task(void (*entry_point)(void), int priority) {
     // KERNEL_STACK_SIZE is defined in include/kernel/scheduler.h
     void* stack_bottom = kmalloc(KERNEL_STACK_SIZE);
     if (stack_bottom == NULL) {
-        printf("create_task: Failed to allocate stack for new task (potential PID %d)!\n", next_pid);
+        kprintf("create_task: Failed to allocate stack for new task (potential PID %d)!\n", next_pid);
         // Important: Do not mark the PCB as used if stack allocation fails.
         return -2; // Error code for stack allocation failure
     }
@@ -260,7 +261,7 @@ pid_t create_task(void (*entry_point)(void), int priority) {
     // The enqueue_task function will set the task's state to TASK_READY.
     enqueue_task(new_task_pcb);
 
-    printf("create_task: PID %d (PCB idx %d) created. Entry: %p, Stack: [%p-%p], Priority: %d\n",
+    kprintf("create_task: PID %d (PCB idx %d) created. Entry: %p, Stack: [%p-%p], Priority: %d\n",
            new_task_pcb->id, new_task_idx, (void*)new_task_pcb->instruction_pointer,
            new_task_pcb->stack_base, (void*)( (char*)new_task_pcb->stack_base + KERNEL_STACK_SIZE -1 ), new_task_pcb->priority);
 
@@ -280,7 +281,7 @@ pid_t create_task(void (*entry_point)(void), int priority) {
 void terminate_task(pid_t id) {
     // TODO: Implement task termination
     (void)id; // Suppress unused parameter warning
-    printf("terminate_task() called for PID %d. (Not yet implemented)\n", id);
+    kprintf("terminate_task() called for PID %d. (Not yet implemented)\n", id);
 }
 
 /**
@@ -298,7 +299,7 @@ void block_task(pid_t id, enum task_state reason) {
     // TODO: Implement task blocking
     (void)id;     // Suppress unused parameter warning
     (void)reason; // Suppress unused parameter warning
-    printf("block_task() called for PID %d with reason %d. (Not yet implemented)\n", id, reason);
+    kprintf("block_task() called for PID %d with reason %d. (Not yet implemented)\n", id, reason);
 }
 
 /**
@@ -314,5 +315,5 @@ void block_task(pid_t id, enum task_state reason) {
 void unblock_task(pid_t id) {
     // TODO: Implement task unblocking
     (void)id; // Suppress unused parameter warning
-    printf("unblock_task() called for PID %d. (Not yet implemented)\n", id);
+    kprintf("unblock_task() called for PID %d. (Not yet implemented)\n", id);
 }

@@ -4,7 +4,7 @@ CFLAGS = -Wall -Wextra -nostdlib -fno-builtin -Iinclude -c
 LDFLAGS =
 
 # Source and Object Files
-SRCS = kernel/main.c kernel/scheduler.c kernel/memory.c kernel/ai_core.c tests/test_memory.c
+SRCS = kernel/main.c kernel/vga.c kernel/printf.c kernel/scheduler.c kernel/memory.c kernel/ai_core.c tests/test_memory.c
 OBJS = $(SRCS:.c=.o)
 
 # Target Executable
