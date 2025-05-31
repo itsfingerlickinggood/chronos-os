@@ -1,6 +1,7 @@
 #include "arch/x86/timer.h"
 #include "arch/x86/io.h"    // For outb
 #include "kernel/printf.h"  // For kprintf (optional, for debugging)
+#include "kernel/scheduler.h" // For schedule()
 
 // Volatile global variable to store the system tick count.
 // This will be incremented by the timer_handler_c.
@@ -108,12 +109,14 @@ void timer_handler_c(registers_t* regs) {
     system_ticks++;
 
     // For debugging, print a message every N ticks:
-    // if ((system_ticks % 100) == 0) { // Example: print every 100 ticks
-    //     kprintf("Timer tick: %d (IRQ0 received)\n", system_ticks);
+    // Note: kprintf doesn't support %llu for uint64_t directly.
+    // Casting to uint32_t for printing if ticks aren't expected to overflow uint32_t quickly.
+    // if (system_ticks % 100 == 0) { // Example: every 100 ticks (1 second if 100Hz)
+    //    kprintf("Timer tick: %d (IRQ0), calling scheduler.\n", (uint32_t)system_ticks);
     // }
 
-    // TODO: Add call to scheduler here for preemptive multitasking if desired.
-    // For example: schedule();
+    // Call the scheduler to potentially switch tasks (preemption)
+    schedule();
 }
 
 /**

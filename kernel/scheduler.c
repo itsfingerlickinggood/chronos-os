@@ -2,6 +2,7 @@
 #include "kernel/memory.h" // For kmalloc/kfree for task stacks (used in create_task)
 #include "kernel/printf.h" // For kprintf
 #include <stddef.h>       // For NULL
+#include "arch/x86/idt.h"  // For context_switch_asm (and uintptr_t from stdint.h via idt.h)
 // #include <stdio.h>     // No longer needed if all printf are replaced
 
 // --- Static global variables for task management ---
@@ -182,6 +183,76 @@ void schedule(void) {
     // typically by jumping to `current_task->instruction_pointer`.
     // In a cooperative model, the task itself will call a "yield" function which calls schedule.
     // In a preemptive model, an interrupt handler (e.g., timer) calls schedule.
+
+    pcb_t* prev_task_pcb = current_task; // Store current_task before it's potentially changed
+    pcb_t* next_task_pcb = NULL;
+
+    // If the previous task was running, set it to ready and enqueue it.
+    if (prev_task_pcb != NULL && prev_task_pcb->state == TASK_RUNNING) {
+        prev_task_pcb->state = TASK_READY;
+        enqueue_task(prev_task_pcb);
+    }
+    // Note: If prev_task_pcb->state was WAITING, SLEEPING, or TERMINATED,
+    // it's not re-enqueued here. It's handled by other mechanisms (unblock, cleanup).
+
+    // Select the next task from the ready queue.
+    next_task_pcb = dequeue_task();
+
+    if (next_task_pcb == NULL) { // If ready queue is empty
+        if (prev_task_pcb != NULL && prev_task_pcb->state == TASK_READY) {
+            // This can happen if prev_task was the only one and just got enqueued.
+            // It means it should continue running.
+            next_task_pcb = prev_task_pcb;
+        } else if (prev_task_pcb != NULL &&
+                   (prev_task_pcb->state == TASK_WAITING || prev_task_pcb->state == TASK_SLEEPING)) {
+            // Previous task is blocked, and no other task is ready.
+            // Keep current_task as the blocked task. No context switch.
+            // The system will effectively "idle" or wait for an interrupt to make this task ready.
+            // kprintf("Scheduler: prev_task %d is WAITING/SLEEPING, no ready tasks. Idling.\n", prev_task_pcb->id);
+            // current_task is already prev_task_pcb, no change needed.
+            return;
+        } else {
+            // No runnable task available (e.g., all tasks terminated or system just started with no tasks).
+            // Or prev_task_pcb is NULL (very first call to schedule before any task started).
+            // kprintf("Scheduler: No task to run. CPU Idle or all tasks done/blocked.\n");
+            current_task = NULL; // Ensure current_task is NULL if no one is running.
+            return; // No context switch.
+        }
+    }
+
+    // If we are here, next_task_pcb is the chosen task to run.
+    next_task_pcb->state = TASK_RUNNING;
+    current_task = next_task_pcb; // Update the global current_task pointer
+
+    // If the chosen next task is the same as the previous task, no context switch is needed.
+    // This can happen if a single task is in the system or if a higher-priority task
+    // that was running yields and is immediately chosen again.
+    if (prev_task_pcb == next_task_pcb) {
+        // kprintf("Scheduler: Continuing with the same task PID %d.\n", current_task->id);
+        return;
+    }
+
+    // --- Perform Context Switch ---
+    // We need a valid pointer to the old task's ESP storage location.
+    // If prev_task_pcb is NULL, it means this is the first task being scheduled
+    // (switching from the initial kernel context).
+    if (prev_task_pcb != NULL) {
+        // kprintf("Scheduler: Switching from PID %d (ESP_storage: %p) to PID %d (ESP_val: %p)\n",
+        //         prev_task_pcb->id, &(prev_task_pcb->stack_pointer),
+        //         next_task_pcb->id, (void*)next_task_pcb->stack_pointer);
+        context_switch_asm(&(prev_task_pcb->stack_pointer), next_task_pcb->stack_pointer);
+    } else {
+        // This is the first task switch (from kernel bootstrap to the first task).
+        // We don't have a "previous task PCB" to save ESP into.
+        // We need a dummy location for the current kernel ESP (which won't be restored).
+        uintptr_t dummy_kernel_esp_storage;
+        // kprintf("Scheduler: Starting first task PID %d (ESP_val: %p). Kernel ESP saved to dummy %p.\n",
+        //         next_task_pcb->id, (void*)next_task_pcb->stack_pointer, &dummy_kernel_esp_storage);
+        context_switch_asm(&dummy_kernel_esp_storage, next_task_pcb->stack_pointer);
+        // The context saved to dummy_kernel_esp_storage is the kernel's main/init context,
+        // and it will not be explicitly switched back to via this mechanism.
+    }
+    // Execution of the new task begins here (after 'ret' in context_switch_asm)
 }
 
 /**
@@ -239,8 +310,50 @@ pid_t create_task(void (*entry_point)(void), int priority) {
     new_task_pcb->instruction_pointer = (uintptr_t)entry_point;
     // The stack pointer is set to the top of the allocated stack.
     // Stacks typically grow downwards.
-    // Subtracting sizeof(uintptr_t) makes space for one item, or just sets it to the very end.
-    new_task_pcb->stack_pointer = (uintptr_t)stack_bottom + KERNEL_STACK_SIZE - sizeof(uintptr_t);
+    // The stack_pointer will point to the top of the saved context.
+
+    // --- 4. Initialize the task's context on its new stack ---
+    // This initial stack frame must match what context_switch_asm expects to pop.
+    // The order of pushes here is reverse of how they'd be on stack after context_switch_asm saves them.
+    // context_switch_asm saves: EFLAGS, then EAX, ECX, EDX, EBX, ESP_orig, EBP, ESI, EDI (from PUSHAD)
+    // The 'ret' instruction in context_switch_asm will use the EIP value we place on stack.
+
+    uintptr_t stack_top = (uintptr_t)stack_bottom + KERNEL_STACK_SIZE;
+    uint32_t* stack_ptr = (uint32_t*)stack_top; // Start at the very top (highest address)
+
+    // Standard initial EFLAGS for a new task (e.g., interrupts enabled)
+    // 0x00000202: IF (Interrupt Flag bit 9 set), bit 1 is always 1.
+    uint32_t initial_eflags = 0x00000202;
+    new_task_pcb->eflags = initial_eflags; // Store in PCB as well
+
+    // Simulate the stack frame that context_switch_asm's `ret` and `popf`/`popad` will consume:
+    // The `ret` instruction expects EIP to be at the top of the stack when `context_switch_asm` returns to the new task.
+    // `popf` expects EFLAGS.
+    // `popad` expects EAX, ECX, EDX, EBX, ESP_original, EBP, ESI, EDI (in that order from stack top after EFLAGS).
+
+    // Push EIP (entry_point for the new task)
+    *(--stack_ptr) = (uint32_t)entry_point;
+
+    // Push EFLAGS
+    *(--stack_ptr) = initial_eflags;
+
+    // Push general-purpose registers (initial values are 0 for simplicity)
+    // PUSHAD order on stack (low addr to high addr): EDI, ESI, EBP, ESP_orig, EBX, EDX, ECX, EAX
+    // So we push them in reverse: EAX first, then ECX, ..., then EDI last.
+    *(--stack_ptr) = 0; // EAX
+    *(--stack_ptr) = 0; // ECX
+    *(--stack_ptr) = 0; // EDX
+    *(--stack_ptr) = 0; // EBX
+    *(--stack_ptr) = 0; // ESP_original (dummy for POPAD, ESP is not restored from here)
+    *(--stack_ptr) = 0; // EBP (frame pointer, can be 0 or top of stack for a C function)
+    *(--stack_ptr) = 0; // ESI
+    *(--stack_ptr) = 0; // EDI (this is what ESP will point to when context_switch_asm loads ESP and starts popping)
+
+    // Set the new task's stack pointer to the top of this prepared frame
+    new_task_pcb->stack_pointer = (uintptr_t)stack_ptr;
+
+    // The instruction_pointer in PCB is mainly for debug/info now, EIP is on stack.
+    new_task_pcb->instruction_pointer = (uintptr_t)entry_point;
 
     // In a real kernel, you would initialize the stack with a "context frame" here.
     // This frame would contain initial values for CPU registers (EAX, EBX, etc.),

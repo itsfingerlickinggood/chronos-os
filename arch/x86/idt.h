@@ -98,6 +98,9 @@ typedef struct {
 void fault_handler(registers_t* regs); // For CPU exceptions/faults
 void irq_handler_c(registers_t* regs); // For hardware IRQs
 
+// Assembly function for context switching
+extern void context_switch_asm(uintptr_t* prev_task_esp_storage, uintptr_t next_task_esp_value);
+
 /**
  * @brief Sets an entry in the Interrupt Descriptor Table.
  *

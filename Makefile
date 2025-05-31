@@ -12,7 +12,7 @@ SRCS = kernel/main.c kernel/vga.c kernel/printf.c kernel/scheduler.c kernel/memo
        kernel/ai_core.c tests/test_memory.c \
        arch/x86/idt.c arch/x86/pic.c arch/x86/timer.c
 
-ASMSOURCES = arch/x86/idt_asm.s arch/x86/isr_stubs.s
+ASMSOURCES = arch/x86/idt_asm.s arch/x86/isr_stubs.s arch/x86/context_switch.s
 
 # Object Files
 OBJS = $(SRCS:.c=.o) $(ASMSOURCES:.s=.o)

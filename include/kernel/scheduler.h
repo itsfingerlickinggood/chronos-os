@@ -31,6 +31,7 @@ typedef struct pcb_t {
     void* stack_base;               // Base of the allocated stack (for kfree when task terminates)
     // void (*entry_point)(void);   // Initial entry point, could be stored here or IP set directly
     int priority;                   // Task priority
+    uint32_t eflags;                // Saved EFLAGS register for context switching
 
     struct pcb_t* next;             // Pointer for linking in ready queue, wait queue, etc.
 
