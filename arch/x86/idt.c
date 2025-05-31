@@ -91,6 +91,7 @@ void idt_init(void) {
 // --- Include kprintf for handler output ---
 #include "kernel/printf.h" // For kprintf
 #include "arch/x86/pic.h"  // For pic_send_eoi
+#include "arch/x86/timer.h"// For timer_handler_c
 
 // --- PIC (Programmable Interrupt Controller) related ---
 // No longer need forward declaration, pic_send_eoi is in pic.h
@@ -149,45 +150,24 @@ void fault_handler(registers_t* regs) {
  * @param regs Pointer to the register state pushed onto the stack.
  */
 void irq_handler_c(registers_t* regs) {
-    unsigned char irq_num = (unsigned char)(regs->int_no - 32); // ISR number 32 is IRQ 0
+    unsigned char irq_num = (unsigned char)(regs->int_no - 32); // Calculate actual IRQ number (0-15)
 
-    // kprintf("IRQ %d (INT %d) received.\n", irq_num, regs->int_no);
-
-    // TODO: Dispatch to specific IRQ handlers (timer, keyboard, etc.) based on irq_num
-    // switch (irq_num) {
-    //     case 0: // Timer
-    //         // timer_tick_handler();
-    //         break;
-    //     case 1: // Keyboard
-    //         // keyboard_input_handler();
-    //         break;
-    //     // ... other IRQs
-    // }
-
-    // Send End-Of-Interrupt (EOI) signal to the PIC(s)
-    // If the IRQ came from the slave PIC (IRQ 8-15), an EOI must be sent to both master and slave.
-    // IRQ numbers 8-15 map to ISR numbers 40-47.
-    if (regs->int_no >= 40) { // IRQ from slave PIC (IRQ 8-15)
-        pic_send_eoi(2); // Send EOI to slave PIC (cascade IRQ line, usually IRQ 2 on master)
-                         // Actually, it's better to send EOI with the specific IRQ number to the slave,
-                         // but some PIC implementations require EOI on master for slave's cascade line too.
-                         // For now, let's assume pic_send_eoi is smart or we simplify.
-                         // A common approach: pic_send_eoi(irq_num) handles master/slave logic.
+    // Dispatch to specific handlers based on IRQ number
+    if (irq_num == 0) { // IRQ0 is the system timer
+        timer_handler_c(regs);
+    } else if (irq_num == 1) { // IRQ1 is keyboard
+        // keyboard_handler_c(regs); // Example for future
+        // kprintf("Keyboard IRQ (1) received - no handler yet.\n");
+        // For now, just acknowledge it if no specific handler, to prevent PIC lockup
+    } else {
+        // kprintf("Unhandled IRQ %d (INT %d) received.\n", irq_num, regs->int_no);
+        // It's important to EOI even unhandled IRQs to prevent the PIC from locking up.
     }
-    pic_send_eoi(irq_num); // Send EOI to master PIC (or the specific IRQ line for the slave)
-                           // This is a simplified EOI. A robust pic_send_eoi would know which PIC
-                           // to send to based on the IRQ number.
-                           // For example, if irq_num >= 8, send to slave, then master. Else just master.
 
-    // For now, let's assume pic_send_eoi handles this:
-    // if (irq_num >= 8) { pic_send_eoi(irq_num - 8 + slave_pic_base_irq_on_master); }
-    // pic_send_eoi(irq_num);
-    // Correct EOI for chained PICs:
-    // if (irq_num >= 8) {
-    //    outb(PIC2_COMMAND, 0x20); // EOI to slave
-    // }
-    // outb(PIC1_COMMAND, 0x20); // EOI to master
-    // This should be encapsulated in pic_send_eoi(irq_num);
+    // Send End-Of-Interrupt (EOI) signal to the PIC(s).
+    // This must be done to allow further interrupts from the PIC.
+    // The pic_send_eoi function handles the master/slave logic.
+    pic_send_eoi(irq_num);
 }
 
 

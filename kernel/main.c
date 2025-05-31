@@ -4,7 +4,8 @@
 #include "kernel/memory.h"    // Includes kmalloc, kfree, memory_init
 #include "kernel/ai_core.h"   // Not used in this part, but kept
 #include "arch/x86/idt.h"     // For idt_init
-#include "arch/x86/pic.h"     // For pic_remap
+#include "arch/x86/pic.h"     // For pic_remap, irq_clear_mask
+#include "arch/x86/timer.h"   // For pit_init, get_system_ticks
 
 // --- Dummy Task Functions ---
 // These functions will run to completion when called.
@@ -68,6 +69,15 @@ int kmain() {
     idt_init();
     pic_remap(0x20, 0x28); // Remap PIC IRQs: Master 0x20-0x27 (32-39), Slave 0x28-0x2F (40-47)
     kprintf("Kernel main: IDT initialized, PIC remapped.\n");
+
+    // Initialize PIT (Programmable Interval Timer)
+    uint32_t timer_frequency = 100; // Hz
+    pit_init(timer_frequency);
+    kprintf("PIT initialized to %d Hz.\n", timer_frequency);
+
+    // Enable (unmask) IRQ0 (the timer line) on the PIC
+    irq_clear_mask(0);
+    kprintf("IRQ0 (timer) unmasked on PIC.\n");
 
     // Enable interrupts globally
     asm volatile ("sti");
@@ -203,5 +213,30 @@ int kmain() {
         }
     }
 
+    kprintf("\n--- Observing Timer Ticks ---\n");
+    uint64_t last_ticks = 0;
+    uint64_t current_ticks = 0;
+    uint32_t display_interval_seconds = 2; // How often to print in seconds
+    uint32_t ticks_per_display = timer_frequency * display_interval_seconds;
+
+    // Loop indefinitely to observe timer ticks
+    while (1) {
+        current_ticks = get_system_ticks();
+        if (current_ticks != last_ticks) {
+            // Print approximately every 'display_interval_seconds' seconds
+            if (current_ticks % ticks_per_display == 0 && current_ticks > last_ticks) {
+                 kprintf("System ticks: %d (uptime: %d s)\n",
+                         (uint32_t)current_ticks, // Cast to uint32_t for %d if kprintf doesn't support %lld
+                         (uint32_t)(current_ticks / timer_frequency));
+            }
+            last_ticks = current_ticks;
+        }
+
+        // Halt the CPU until the next interrupt. This saves power.
+        // If interrupts are working (especially the timer), this will wake up.
+        asm volatile ("hlt");
+    }
+
+    // This part will not be reached if the while(1) loop is active.
     return 0;
 }
