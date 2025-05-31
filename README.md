@@ -1,18 +1,49 @@
-# chronos-os
-ai-os
+# AI-Based Operating System Kernel
 
-**Chronos AI OS: A Glimpse into the Future** 🌠
+## Introduction
 
-Chronos is a bold step into the future of computing. It's an AI-powered OS designed to revolutionize the way you interact with technology. 
+This project aims to explore the integration of Artificial Intelligence (AI) into the core functionalities of an operating system kernel. The goal is to investigate how AI can enhance aspects like scheduling, memory management, resource allocation, and overall system performance and adaptability.
 
-**Key Features:**
+## Project Structure
 
-* **Intelligent Assistant:** Your digital companion, always ready to assist. 🧑‍💻
-* **Adaptive Learning:** The OS learns your preferences and adapts to your needs. 🧠
-* **Seamless Connectivity:** Your devices, seamlessly connected. 🌐
-* **Ironclad Security:** Protecting your digital world. 🔐
-* **Intuitive Design:** A simple, beautiful interface. ✨
-* **Continuous Evolution:** Always learning and improving. 📈
+The repository is organized into the following main directories:
 
-Join us in shaping the future of technology. 
+- `kernel/`: Contains the core kernel code, including process management, memory management, and scheduling.
+- `arch/`: Will hold architecture-specific code (e.g., for x86, ARM).
+- `drivers/`: Will house device drivers for various hardware components.
+- `lib/`: Contains utility libraries used by the kernel.
+- `include/`: Header files for the kernel and libraries.
+    - `include/kernel/`: Specific header files for kernel components.
+- `docs/`: Project documentation.
+- `scripts/`: Helper scripts for building, testing, or other development tasks.
 
+## Building the Kernel
+
+A `Makefile` is provided to compile the kernel. The following commands can be used:
+
+- `make all`: Compiles the kernel source code and creates the `kernel.bin` executable. This is the default target.
+- `make clean`: Removes compiled object files and the `kernel.bin` executable.
+
+The compilation process currently uses `gcc` with flags suitable for a freestanding environment (`-nostdlib`, `-fno-builtin`). The necessary include paths are also configured.
+
+## Current Status
+
+The project is in its initial setup phase. Basic directory structure, core C files with placeholder content, and a preliminary `Makefile` have been established. The kernel can be compiled into a non-bootable binary (`kernel.bin`).
+
+## Future Goals
+
+The long-term vision for this project includes:
+
+- Implementing fundamental OS features:
+    - Bootstrapping and system initialization.
+    - Basic memory management (paging, allocation).
+    - Process and thread scheduling.
+    - Inter-process communication (IPC).
+    - Simple file system.
+- Integrating AI components to:
+    - Optimize task scheduling based on workload patterns.
+    - Implement predictive memory management.
+    - Enhance system security through anomaly detection.
+    - Develop adaptive resource management strategies.
+
+This project is experimental and serves as a learning platform for OS development and AI integration.
