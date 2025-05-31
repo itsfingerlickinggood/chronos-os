@@ -3,6 +3,8 @@
 #include "kernel/scheduler.h" // Includes pcb_t, task_state, create_task, schedule, current_task, tasks, MAX_TASKS
 #include "kernel/memory.h"    // Includes kmalloc, kfree, memory_init
 #include "kernel/ai_core.h"   // Not used in this part, but kept
+#include "arch/x86/idt.h"     // For idt_init
+#include "arch/x86/pic.h"     // For pic_remap
 
 // --- Dummy Task Functions ---
 // These functions will run to completion when called.
@@ -61,6 +63,28 @@ void task3_func(void) {
 int kmain() {
     vga_init(); // Initialize VGA display first
     kprintf("Kernel main: VGA initialized.\n");
+
+    // Initialize Interrupt Descriptor Table (IDT) and Programmable Interrupt Controller (PIC)
+    idt_init();
+    pic_remap(0x20, 0x28); // Remap PIC IRQs: Master 0x20-0x27 (32-39), Slave 0x28-0x2F (40-47)
+    kprintf("Kernel main: IDT initialized, PIC remapped.\n");
+
+    // Enable interrupts globally
+    asm volatile ("sti");
+    kprintf("Kernel main: Interrupts enabled (STI).\n");
+
+    // --- Optional: Test a CPU exception (e.g., Divide by Zero) ---
+    // This will call ISR 0 and should be handled by fault_handler, then halt.
+    // Uncomment to test. WARNING: This will halt the system if ISRs are working.
+    /*
+    kprintf("Testing divide-by-zero exception...\n");
+    volatile int x = 5;
+    volatile int y = 0;
+    volatile int z = x / y;
+    kprintf("Value of z (should not be reached): %d\n", z);
+    */
+    // --- End of Exception Test ---
+
 
     memory_init(); // Initialize the memory manager
     kprintf("Kernel main: Memory manager started.\n");
