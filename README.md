@@ -30,6 +30,10 @@ The compilation process currently uses `gcc` with flags suitable for a freestand
 
 The project is in its initial setup phase. Basic directory structure, core C files with placeholder content, and a preliminary `Makefile` have been established. The kernel can be compiled into a non-bootable binary (`kernel.bin`).
 
+## Dark Knight Intelligence Dashboard
+
+A Dark Knight-inspired intelligence dashboard prototype lives in `docs/dark-knight-dashboard/`. It is a standalone HTML/CSS/JavaScript experience that can be opened directly via `docs/dark-knight-dashboard/index.html` in a modern browser. The dashboard simulates live threat telemetry, strategic asset readiness, and intel feeds while adhering to the project's monochrome design system.
+
 ## Future Goals
 
 The long-term vision for this project includes:

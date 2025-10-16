@@ -1,0 +1,11 @@
+# Build artifacts
+*.o
+*.bin
+*.elf
+
+# Logs
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db

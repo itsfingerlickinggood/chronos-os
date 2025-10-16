@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Oracle — Intelligence Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="static-noise" aria-hidden="true"></div>
+  <div class="grid-overlay" aria-hidden="true"></div>
+
+  <header class="header">
+    <div class="brand">
+      <span class="brand__tag">Project Oracle</span>
+      <span class="brand__subtitle">Dark Knight Intelligence Console</span>
+    </div>
+    <div class="hud">
+      <div class="hud__segment">
+        <span class="hud__label">Global Sync</span>
+        <span class="hud__value" id="hud-time">00:00:00 UTC</span>
+      </div>
+      <div class="hud__segment">
+        <span class="hud__label">Signal Density</span>
+        <span class="hud__value" id="hud-density">0.00</span>
+      </div>
+      <div class="hud__segment">
+        <span class="hud__label">Threat Index</span>
+        <span class="hud__value" id="hud-threat">0.0%</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <section class="panel panel--wide" aria-labelledby="threat-probability">
+      <header class="panel__header">
+        <h2 id="threat-probability">Global Threat Probability</h2>
+        <span class="status-chip status-chip--critical" id="threat-state">Critical</span>
+      </header>
+      <div class="panel__content">
+        <canvas id="threat-chart" width="900" height="260" aria-label="Threat probability line graph"></canvas>
+      </div>
+      <footer class="panel__footer">
+        <div class="footer-stat">
+          <span class="footer-stat__label">Highest Risk Vector</span>
+          <span class="footer-stat__value" id="risk-vector">UNASSIGNED</span>
+        </div>
+        <div class="footer-stat">
+          <span class="footer-stat__label">Variance</span>
+          <span class="footer-stat__value" id="risk-variance">0.00</span>
+        </div>
+        <div class="footer-stat">
+          <span class="footer-stat__label">Confidence Interval</span>
+          <span class="footer-stat__value" id="risk-confidence">0%</span>
+        </div>
+      </footer>
+    </section>
+
+    <section class="panel" aria-labelledby="asset-readiness">
+      <header class="panel__header">
+        <h2 id="asset-readiness">Strategic Asset Readiness</h2>
+      </header>
+      <div class="panel__content">
+        <ul class="status-list" id="asset-status">
+          <li class="status-list__item" data-unit="Sentinel Grid">
+            <span class="status-pulse" aria-hidden="true"></span>
+            <div class="status-list__meta">
+              <span class="status-list__label">Sentinel Grid</span>
+              <span class="status-list__detail">Triangulating anomalies</span>
+            </div>
+            <span class="status-list__state">STABLE</span>
+          </li>
+          <li class="status-list__item" data-unit="Aerial Recon">
+            <span class="status-pulse" aria-hidden="true"></span>
+            <div class="status-list__meta">
+              <span class="status-list__label">Aerial Recon</span>
+              <span class="status-list__detail">Thermal sweeps engaged</span>
+            </div>
+            <span class="status-list__state">STABLE</span>
+          </li>
+          <li class="status-list__item" data-unit="Cipher Division">
+            <span class="status-pulse" aria-hidden="true"></span>
+            <div class="status-list__meta">
+              <span class="status-list__label">Cipher Division</span>
+              <span class="status-list__detail">Quantum lattice decrypting</span>
+            </div>
+            <span class="status-list__state">STABLE</span>
+          </li>
+          <li class="status-list__item" data-unit="Field Operatives">
+            <span class="status-pulse" aria-hidden="true"></span>
+            <div class="status-list__meta">
+              <span class="status-list__label">Field Operatives</span>
+              <span class="status-list__detail">Silent protocol sweep</span>
+            </div>
+            <span class="status-list__state">STABLE</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="signal-integrity">
+      <header class="panel__header">
+        <h2 id="signal-integrity">Signal Integrity Core</h2>
+      </header>
+      <div class="panel__content meter-grid">
+        <div class="dial" data-meter="signal" aria-label="Signal Integrity">
+          <div class="dial__mask">
+            <div class="dial__fill"></div>
+          </div>
+          <div class="dial__value" id="signal-value">0%</div>
+          <span class="dial__label">Signal Integrity</span>
+        </div>
+        <div class="dial" data-meter="encryption" aria-label="Quantum Encryption">
+          <div class="dial__mask">
+            <div class="dial__fill"></div>
+          </div>
+          <div class="dial__value" id="encryption-value">0%</div>
+          <span class="dial__label">Quantum Encryption</span>
+        </div>
+        <div class="dial" data-meter="containment" aria-label="Containment Assurance">
+          <div class="dial__mask">
+            <div class="dial__fill"></div>
+          </div>
+          <div class="dial__value" id="containment-value">0%</div>
+          <span class="dial__label">Containment Assurance</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="intel-feed">
+      <header class="panel__header">
+        <h2 id="intel-feed">Operational Intelligence Feed</h2>
+      </header>
+      <div class="panel__content">
+        <ul class="intel-feed" id="intel-feed-list" aria-live="polite"></ul>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="response-teams">
+      <header class="panel__header">
+        <h2 id="response-teams">Rapid Response Teams</h2>
+      </header>
+      <div class="panel__content">
+        <ul class="progress-list" id="response-progress">
+          <li class="progress-list__item" data-team="Vector-01">
+            <div class="progress-list__meta">
+              <span class="progress-list__label">Vector-01</span>
+              <span class="progress-list__detail">Urban perimeter sweep</span>
+            </div>
+            <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div class="progress__bar"></div>
+            </div>
+          </li>
+          <li class="progress-list__item" data-team="Vector-02">
+            <div class="progress-list__meta">
+              <span class="progress-list__label">Vector-02</span>
+              <span class="progress-list__detail">Aerial interdiction</span>
+            </div>
+            <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div class="progress__bar"></div>
+            </div>
+          </li>
+          <li class="progress-list__item" data-team="Vector-07">
+            <div class="progress-list__meta">
+              <span class="progress-list__label">Vector-07</span>
+              <span class="progress-list__detail">Covert countermeasure</span>
+            </div>
+            <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div class="progress__bar"></div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="panel panel--tall" aria-labelledby="system-telemetry">
+      <header class="panel__header">
+        <h2 id="system-telemetry">Telemetric Diagnostics</h2>
+      </header>
+      <div class="panel__content telemetry-grid" id="telemetry-grid"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>WayneTech // Restricted Access</span>
+    <span>Operator Authorization: ALPHA-NIGHTFALL</span>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
