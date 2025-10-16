@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dark Knight Intelligence Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-sA+4cG6HcRCqip1o7CNeyaSziB4Ni52v0u1rXPm7q0k=" crossorigin="">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-o9N1j8Mk3UChY0sCwTi27Ck0JkzHOewP4Zj75f0SYJ0=" crossorigin="" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-yW0HQNwoStOCEJTVP1cR9sFAJ37dTBxE7rInm6NhYbC5fND8w0DvUdY0HeNp5+it" crossorigin="anonymous" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="scanlines" aria-hidden="true"></div>
+  <div class="grid-overlay" aria-hidden="true"></div>
+  <header class="dashboard-header">
+    <div class="brand">
+      <h1>Dark Knight Intelligence Network</h1>
+      <p>Operation: Watchtower</p>
+    </div>
+    <div class="mission-meta">
+      <div class="clock" aria-live="polite">
+        <span id="currentDate">--</span>
+        <span id="currentTime">--:--:--</span>
+      </div>
+      <div class="location-tag">
+        Gotham City Command</div>
+    </div>
+    <button id="settingsToggle" class="settings-toggle" aria-controls="settingsPanel" aria-expanded="false">
+      <span aria-hidden="true">&#9881;</span>
+      System Config
+    </button>
+  </header>
+
+  <main class="dashboard-grid">
+    <section class="panel status-panel" aria-labelledby="statusHeading">
+      <div class="panel-header">
+        <h2 id="statusHeading">System Status</h2>
+        <span class="panel-meta" id="statusUpdated">Syncing...</span>
+      </div>
+      <div class="panel-body">
+        <div id="statusGrid" class="status-grid" role="list"></div>
+        <div class="alerts">
+          <div class="alerts-header">
+            <h3>Active Alerts</h3>
+            <span id="alertsCount">0</span>
+          </div>
+          <ul id="alertsList" class="alerts-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel map-panel" aria-labelledby="mapHeading">
+      <div class="panel-header">
+        <h2 id="mapHeading">Incident Mapping</h2>
+        <span class="panel-meta" id="mapLastUpdated">Loading map...</span>
+      </div>
+      <div class="panel-body">
+        <div id="map" role="presentation"></div>
+      </div>
+    </section>
+
+    <section class="panel weather-panel" aria-labelledby="weatherHeading">
+      <div class="panel-header">
+        <h2 id="weatherHeading">Atmospheric Conditions</h2>
+        <div class="panel-meta" id="weatherMeta">Awaiting data...</div>
+      </div>
+      <div class="panel-body weather-body">
+        <div class="current-weather">
+          <div class="temperature" id="weatherTemperature">--°</div>
+          <div class="conditions">
+            <span id="weatherSummary">Standby</span>
+            <span id="weatherFeels">Feels like --°</span>
+            <span id="weatherWind">Wind -- km/h</span>
+            <span id="weatherHumidity">Humidity --%</span>
+          </div>
+        </div>
+        <div class="forecast" id="weatherForecast"></div>
+      </div>
+    </section>
+
+    <section class="panel news-panel" aria-labelledby="newsHeading">
+      <div class="panel-header">
+        <h2 id="newsHeading">Intelligence Feed</h2>
+        <span class="panel-meta" id="newsUpdated">Loading...</span>
+      </div>
+      <div class="panel-body news-body">
+        <ul id="newsFeed" class="news-feed"></ul>
+      </div>
+    </section>
+
+    <section class="panel crime-panel" aria-labelledby="crimeHeading">
+      <div class="panel-header">
+        <h2 id="crimeHeading">Crime Analytics</h2>
+        <span class="panel-meta" id="crimeUpdated">Synchronizing...</span>
+      </div>
+      <div class="panel-body crime-body">
+        <canvas id="crimeChart" aria-label="Crime statistics chart" role="img"></canvas>
+        <ul id="crimeInsights" class="insights-list"></ul>
+      </div>
+    </section>
+
+    <section class="panel operations-panel" aria-labelledby="operationsHeading">
+      <div class="panel-header">
+        <h2 id="operationsHeading">Operations Log</h2>
+        <span class="panel-meta">Auto-refresh</span>
+      </div>
+      <div class="panel-body log-body">
+        <ul id="operationsLog" class="log-feed"></ul>
+      </div>
+    </section>
+  </main>
+
+  <aside id="settingsPanel" class="settings-panel hidden" aria-hidden="true">
+    <div class="settings-header">
+      <h2>System Configuration</h2>
+      <button id="closeSettings" class="close-btn" aria-label="Close configuration">×</button>
+    </div>
+    <form id="settingsForm" class="settings-form">
+      <div class="form-section">
+        <label for="openWeatherKey">OpenWeatherMap API Key</label>
+        <input type="password" id="openWeatherKey" name="openWeatherKey" placeholder="Enter API key" autocomplete="off">
+        <p class="input-hint">Required to fetch live weather conditions. Get a free key from <a href="https://openweathermap.org/api" target="_blank" rel="noopener">OpenWeatherMap</a>.</p>
+      </div>
+      <div class="form-section">
+        <label for="cityName">Primary City / Sector</label>
+        <input type="text" id="cityName" name="cityName" placeholder="e.g. Gotham City" autocomplete="off">
+      </div>
+      <div class="form-grid">
+        <div>
+          <label for="latitude">Latitude</label>
+          <input type="number" step="any" id="latitude" name="latitude" placeholder="40.7128">
+        </div>
+        <div>
+          <label for="longitude">Longitude</label>
+          <input type="number" step="any" id="longitude" name="longitude" placeholder="-74.0060">
+        </div>
+      </div>
+      <button type="submit" class="apply-btn">Save &amp; Reinitialize</button>
+    </form>
+  </aside>
+  <div id="settingsBackdrop" class="settings-backdrop hidden" aria-hidden="true"></div>
+</body>
+</html>
