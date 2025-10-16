@@ -19,6 +19,9 @@ enum task_state {
 // Kernel stack size for tasks
 #define KERNEL_STACK_SIZE (4096) // 4KB stack
 
+// Maximum number of tasks
+#define MAX_TASKS 32
+
 // Process Control Block (PCB)
 typedef struct pcb_t {
     pid_t id;                       // Process ID

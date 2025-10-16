@@ -1,0 +1,28 @@
+# Build artifacts
+*.o
+*.bin
+*.elf
+*.iso
+
+# Editor backups and temporary files
+*~
+*.swp
+*.swo
+.*.swp
+.*.swo
+
+# IDE directories
+.vscode/
+.idea/
+*.sublime-*
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Debug files
+*.log
+*.dump
+
+# Dependencies
+*.d

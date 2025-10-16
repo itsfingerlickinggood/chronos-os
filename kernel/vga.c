@@ -167,6 +167,230 @@ void vga_puts(const char* str) {
     }
 }
 
+// --- Cursor Control Functions ---
+
+/**
+ * @brief Sets the cursor position to a specific row and column.
+ * @param row The row to position the cursor (0 to VGA_HEIGHT-1).
+ * @param col The column to position the cursor (0 to VGA_WIDTH-1).
+ */
+void vga_set_cursor_pos(int row, int col) {
+    if (row >= 0 && row < VGA_HEIGHT && col >= 0 && col < VGA_WIDTH) {
+        term_row = row;
+        term_col = col;
+    }
+}
+
+/**
+ * @brief Gets the current cursor position.
+ * @param row Pointer to store the current row (can be NULL).
+ * @param col Pointer to store the current column (can be NULL).
+ */
+void vga_get_cursor_pos(int* row, int* col) {
+    if (row) {
+        *row = term_row;
+    }
+    if (col) {
+        *col = term_col;
+    }
+}
+
+// --- Coordinate-based Character/String Writes ---
+
+/**
+ * @brief Writes a character at a specific position with the current style.
+ * Does not move the cursor or trigger scrolling.
+ * @param c The character to write.
+ * @param row The row to write at (0 to VGA_HEIGHT-1).
+ * @param col The column to write at (0 to VGA_WIDTH-1).
+ */
+void vga_putc_at(char c, int row, int col) {
+    vga_put_char_at(c, term_style, row, col);
+}
+
+/**
+ * @brief Writes a character at a specific position with a specific style.
+ * Does not move the cursor or trigger scrolling.
+ * @param c The character to write.
+ * @param style The style byte to use.
+ * @param row The row to write at (0 to VGA_HEIGHT-1).
+ * @param col The column to write at (0 to VGA_WIDTH-1).
+ */
+void vga_putc_at_styled(char c, uint8_t style, int row, int col) {
+    vga_put_char_at(c, style, row, col);
+}
+
+/**
+ * @brief Writes a string at a specific position with the current style.
+ * Does not move the cursor or trigger scrolling.
+ * Will stop at screen boundaries (no wrapping).
+ * @param str The string to write.
+ * @param row The row to start writing at (0 to VGA_HEIGHT-1).
+ * @param col The column to start writing at (0 to VGA_WIDTH-1).
+ */
+void vga_puts_at(const char* str, int row, int col) {
+    if (!str || row < 0 || row >= VGA_HEIGHT) {
+        return;
+    }
+    int current_col = col;
+    for (size_t i = 0; str[i] != '\0' && current_col < VGA_WIDTH; ++i) {
+        vga_put_char_at(str[i], term_style, row, current_col);
+        current_col++;
+    }
+}
+
+/**
+ * @brief Writes a string at a specific position with a specific style.
+ * Does not move the cursor or trigger scrolling.
+ * Will stop at screen boundaries (no wrapping).
+ * @param str The string to write.
+ * @param style The style byte to use.
+ * @param row The row to start writing at (0 to VGA_HEIGHT-1).
+ * @param col The column to start writing at (0 to VGA_WIDTH-1).
+ */
+void vga_puts_at_styled(const char* str, uint8_t style, int row, int col) {
+    if (!str || row < 0 || row >= VGA_HEIGHT) {
+        return;
+    }
+    int current_col = col;
+    for (size_t i = 0; str[i] != '\0' && current_col < VGA_WIDTH; ++i) {
+        vga_put_char_at(str[i], style, row, current_col);
+        current_col++;
+    }
+}
+
+// --- Region Fill Helpers ---
+
+/**
+ * @brief Fills a rectangular region with a specific character and style.
+ * @param row The starting row (0 to VGA_HEIGHT-1).
+ * @param col The starting column (0 to VGA_WIDTH-1).
+ * @param width The width of the rectangle.
+ * @param height The height of the rectangle.
+ * @param c The character to fill with.
+ * @param style The style byte to use.
+ */
+void vga_fill_rect(int row, int col, int width, int height, char c, uint8_t style) {
+    if (row < 0 || col < 0 || width <= 0 || height <= 0) {
+        return;
+    }
+    
+    int end_row = row + height;
+    int end_col = col + width;
+    
+    if (end_row > VGA_HEIGHT) {
+        end_row = VGA_HEIGHT;
+    }
+    if (end_col > VGA_WIDTH) {
+        end_col = VGA_WIDTH;
+    }
+    
+    for (int y = row; y < end_row; ++y) {
+        for (int x = col; x < end_col; ++x) {
+            vga_put_char_at(c, style, y, x);
+        }
+    }
+}
+
+/**
+ * @brief Clears a rectangular region (fills with spaces) using the current style.
+ * @param row The starting row (0 to VGA_HEIGHT-1).
+ * @param col The starting column (0 to VGA_WIDTH-1).
+ * @param width The width of the rectangle.
+ * @param height The height of the rectangle.
+ */
+void vga_clear_rect(int row, int col, int width, int height) {
+    vga_fill_rect(row, col, width, height, ' ', term_style);
+}
+
+/**
+ * @brief Draws a horizontal line at a specific position.
+ * @param row The row to draw at.
+ * @param col The starting column.
+ * @param length The length of the line.
+ * @param c The character to use for the line.
+ * @param style The style byte to use.
+ */
+void vga_draw_hline(int row, int col, int length, char c, uint8_t style) {
+    if (row < 0 || row >= VGA_HEIGHT || col < 0 || length <= 0) {
+        return;
+    }
+    
+    int end_col = col + length;
+    if (end_col > VGA_WIDTH) {
+        end_col = VGA_WIDTH;
+    }
+    
+    for (int x = col; x < end_col; ++x) {
+        vga_put_char_at(c, style, row, x);
+    }
+}
+
+/**
+ * @brief Draws a vertical line at a specific position.
+ * @param row The starting row.
+ * @param col The column to draw at.
+ * @param length The length of the line.
+ * @param c The character to use for the line.
+ * @param style The style byte to use.
+ */
+void vga_draw_vline(int row, int col, int length, char c, uint8_t style) {
+    if (row < 0 || col < 0 || col >= VGA_WIDTH || length <= 0) {
+        return;
+    }
+    
+    int end_row = row + length;
+    if (end_row > VGA_HEIGHT) {
+        end_row = VGA_HEIGHT;
+    }
+    
+    for (int y = row; y < end_row; ++y) {
+        vga_put_char_at(c, style, y, col);
+    }
+}
+
+/**
+ * @brief Draws a box (border) at a specific position.
+ * @param row The starting row.
+ * @param col The starting column.
+ * @param width The width of the box (including borders).
+ * @param height The height of the box (including borders).
+ * @param style The style byte to use.
+ */
+void vga_draw_box(int row, int col, int width, int height, uint8_t style) {
+    if (row < 0 || col < 0 || width < 2 || height < 2) {
+        return;
+    }
+    
+    int end_row = row + height - 1;
+    int end_col = col + width - 1;
+    
+    if (row >= VGA_HEIGHT || col >= VGA_WIDTH) {
+        return;
+    }
+    
+    if (end_row >= VGA_HEIGHT) {
+        end_row = VGA_HEIGHT - 1;
+    }
+    if (end_col >= VGA_WIDTH) {
+        end_col = VGA_WIDTH - 1;
+    }
+    
+    // Top and bottom borders
+    vga_draw_hline(row, col + 1, width - 2, VGA_BOX_HORIZONTAL, style);
+    vga_draw_hline(end_row, col + 1, width - 2, VGA_BOX_HORIZONTAL, style);
+    
+    // Left and right borders
+    vga_draw_vline(row + 1, col, height - 2, VGA_BOX_VERTICAL, style);
+    vga_draw_vline(row + 1, end_col, height - 2, VGA_BOX_VERTICAL, style);
+    
+    // Corners
+    vga_put_char_at(VGA_BOX_TOP_LEFT, style, row, col);
+    vga_put_char_at(VGA_BOX_TOP_RIGHT, style, row, end_col);
+    vga_put_char_at(VGA_BOX_BOTTOM_LEFT, style, end_row, col);
+    vga_put_char_at(VGA_BOX_BOTTOM_RIGHT, style, end_row, end_col);
+}
+
 // Hardware cursor functions (outb, inb) would be here if implemented.
 // void vga_update_cursor(int row, int col) { ... }
 // void vga_enable_cursor(uint8_t cursor_start, uint8_t cursor_end) { ... }

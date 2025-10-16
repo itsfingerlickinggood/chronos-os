@@ -4,11 +4,10 @@
 #include <stddef.h>       // For NULL
 // #include <stdio.h>     // No longer needed if all printf are replaced
 
-// --- Static global variables for task management ---
-#define MAX_TASKS 32 // Maximum number of tasks the system can handle
+// --- Global variables for task management ---
 
-static pcb_t tasks[MAX_TASKS];         // Array of PCBs
-static pcb_t* current_task = NULL;    // Pointer to the currently executing task
+pcb_t tasks[MAX_TASKS];                // Array of PCBs
+pcb_t* current_task = NULL;            // Pointer to the currently executing task
 static pcb_t* ready_queue_head = NULL; // Head of the ready task queue (singly linked list)
 static pid_t next_pid = 1;             // Counter for assigning new PIDs
 
@@ -49,7 +48,7 @@ static void enqueue_task(pcb_t* task) {
         kprintf("enqueue_task: Attempted to enqueue a NULL task.\n");
         return;
     }
-    if (task->state != TASK_UNUSED && task->state != TASK_TERMINATED && task->state != TASK_WAITING && task_state != TASK_SLEEPING) {
+    if (task->state != TASK_UNUSED && task->state != TASK_TERMINATED && task->state != TASK_WAITING && task->state != TASK_SLEEPING) {
         // Only tasks that are not already in a runnable/ready state should be enqueued directly.
         // Or tasks that are being moved from waiting/sleeping to ready.
         // For simplicity here, we assume it's a new or unblocked task.

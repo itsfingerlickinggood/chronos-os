@@ -58,31 +58,6 @@ void idt_set_gate(uint8_t num, uintptr_t base, uint16_t sel, uint8_t flags) {
  * handlers (ISRs) must be registered using `idt_set_gate()` for each desired interrupt vector.
  * Typically, all entries are first pointed to a default "unhandled interrupt" handler.
  */
-void idt_init(void) {
-    // Initialize all IDT entries to zero.
-    // This ensures that any unused interrupt vectors point to a null handler by default,
-    // which can help catch spurious interrupts if the null handler causes a fault.
-    // A more robust approach would be to set all entries to a generic default ISR.
-    simple_memset(&idt, 0, sizeof(idt_entry_t) * NUM_IDT_ENTRIES);
-
-    // TODO: Later, populate the IDT with actual ISRs.
-    // For example, a loop here would call idt_set_gate for each of the first 32
-    // exception handlers and then for hardware IRQs.
-    // e.g., idt_set_gate(0, (uintptr_t)&isr0, 0x08, IDT_FLAG_PRESENT | ...);
-
-    // Setup the IDTR structure:
-    // Set the base address of the IDT array
-    idt_reg.base  = (uintptr_t)&idt;
-    // Set the limit (size of the IDT in bytes - 1)
-    idt_reg.limit = (sizeof(idt_entry_t) * NUM_IDT_ENTRIES) - 1;
-
-    // Load the IDT register using the assembly routine.
-    // The `idt_load` function should contain the `lidt` instruction.
-    idt_load(&idt_reg);
-
-    // For debugging (if kprintf is available and working early):
-    // kprintf("IDT initialized. Base: %p, Limit: 0x%x\n", idt_reg.base, idt_reg.limit);
-}
 
 // Note: The `idt_load` function itself is expected to be in an assembly file (e.g., idt_asm.s)
 // as it requires the `lidt` instruction, which is privileged and typically handled in assembly.
