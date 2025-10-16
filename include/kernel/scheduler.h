@@ -18,6 +18,7 @@ enum task_state {
 
 // Kernel stack size for tasks
 #define KERNEL_STACK_SIZE (4096) // 4KB stack
+#define MAX_TASKS 32              // Maximum number of tasks the system can track
 
 // Process Control Block (PCB)
 typedef struct pcb_t {
@@ -55,7 +56,7 @@ void unblock_task(pid_t id); // Unblock a task (move to ready)
 // External declarations for global scheduler variables (for inspection/debug)
 // NOTE: Direct access is generally discouraged; prefer accessor functions or syscalls.
 extern pcb_t* current_task;
-extern pcb_t tasks[]; // Exposes the whole array; use with caution. MAX_TASKS needs to be known or passed.
+extern pcb_t tasks[MAX_TASKS]; // Exposes the whole array; use with caution.
 
 
 #endif // KERNEL_SCHEDULER_H

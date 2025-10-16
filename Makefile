@@ -8,7 +8,7 @@ ASM = nasm
 ASMFLAGS = -f elf32 # Output format: ELF32
 
 # Source Files
-SRCS = kernel/main.c kernel/vga.c kernel/printf.c kernel/scheduler.c kernel/memory.c \
+SRCS = kernel/main.c kernel/dashboard.c kernel/vga.c kernel/printf.c kernel/scheduler.c kernel/memory.c \
        kernel/ai_core.c tests/test_memory.c \
        arch/x86/idt.c arch/x86/pic.c arch/x86/timer.c
 

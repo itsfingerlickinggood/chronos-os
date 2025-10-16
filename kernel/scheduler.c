@@ -5,10 +5,8 @@
 // #include <stdio.h>     // No longer needed if all printf are replaced
 
 // --- Static global variables for task management ---
-#define MAX_TASKS 32 // Maximum number of tasks the system can handle
-
-static pcb_t tasks[MAX_TASKS];         // Array of PCBs
-static pcb_t* current_task = NULL;    // Pointer to the currently executing task
+pcb_t tasks[MAX_TASKS];               // Array of PCBs
+pcb_t* current_task = NULL;           // Pointer to the currently executing task
 static pcb_t* ready_queue_head = NULL; // Head of the ready task queue (singly linked list)
 static pid_t next_pid = 1;             // Counter for assigning new PIDs
 
@@ -49,7 +47,7 @@ static void enqueue_task(pcb_t* task) {
         kprintf("enqueue_task: Attempted to enqueue a NULL task.\n");
         return;
     }
-    if (task->state != TASK_UNUSED && task->state != TASK_TERMINATED && task->state != TASK_WAITING && task_state != TASK_SLEEPING) {
+    if (task->state != TASK_UNUSED && task->state != TASK_TERMINATED && task->state != TASK_WAITING && task->state != TASK_SLEEPING) {
         // Only tasks that are not already in a runnable/ready state should be enqueued directly.
         // Or tasks that are being moved from waiting/sleeping to ready.
         // For simplicity here, we assume it's a new or unblocked task.
@@ -116,13 +114,6 @@ void schedule(void) {
             prev_task->state = TASK_READY;
             enqueue_task(prev_task);
             // printf("schedule: Task %d (was running) enqueued, state set to READY.\n", prev_task->id);
-        } else if (prev_task->state == TASK_TERMINATED) {
-            // If the task terminated itself (or was marked for termination):
-            // - Its stack should be freed by terminate_task().
-            // - Its PCB should be marked TASK_UNUSED by terminate_task().
-            // For now, we just acknowledge it and don't re-enqueue.
-            // A call to terminate_task should have handled cleanup.
-             kprintf("schedule: Task %d was TERMINATED. It will not be re-enqueued.\n", prev_task->id);
         }
         // If prev_task->state is TASK_WAITING or TASK_SLEEPING, it means the task blocked itself.
         // It should have been removed from the ready queue by block_task() or similar.
