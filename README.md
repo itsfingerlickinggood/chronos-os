@@ -178,7 +178,8 @@ pytest
 ```
 
 The test suite (77 tests) runs fully offline against an in-memory fake of the network.
-See [`docs/PROJECT_REPORT.md`](docs/PROJECT_REPORT.md) for the full project report.
+See [`docs/PROJECT_REPORT.md`](docs/PROJECT_REPORT.md) for the full project report, and
+[`presentation/`](presentation) for the slides and presentation guide.
 
 ## License
 
