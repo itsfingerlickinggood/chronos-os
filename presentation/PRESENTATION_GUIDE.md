@@ -8,6 +8,10 @@ Everything you need to present this project, in simple language.
 - **Videos:** `videos/1-what-is-depscan.mp4` explains the idea with no technical words, and
   `videos/2-how-depscan-works.mp4` shows the tool working step by step. Both have voice and captions.
   Watch them first if any part of the project is unclear, or play them for a non-technical audience.
+- **Start here if you are the presenter:** `videos/3-complete-explanation.mp4` (about 9 minutes) answers
+  14 questions a teacher might ask, in order: what it is, the problem, a real 2025 attack, how it helps,
+  who uses it, how it works, the architecture, what each code file does, the outside tools, the scoring,
+  the results, the limits, and how to present it. No coding knowledge is needed to follow it.
 - **Diagrams:** `diagrams/` has seven pictures (what it is, the four tricks, real incidents, the four
   steps, reading the score, the GitHub guard, project structure) that you can paste into slides or a report.
 
@@ -98,7 +102,7 @@ live demo.*
 
 **Slide 10 — Results on the demo projects** (1 min)
 I made two demo projects with risky packages on purpose. depscan scanned 19 packages in about
-2.5 seconds: 4 critical, 9 high, 1 medium and 5 low. It caught the fake names, the vulnerable
+2.5 seconds: 5 critical, 8 high, 1 medium and 5 low. It caught the fake names, the vulnerable
 versions and the missing private package. The healthy package numpy scored zero. All 77
 automatic tests pass.
 
@@ -155,6 +159,14 @@ If something breaks during the demo, stay calm, open the saved `report.html`, an
 **Q1. What is the main idea of your project?**
 It scores how risky each third-party package in a project is, using free public data, and
 explains the reasons.
+
+**Q1b. Has an attack like this happened recently?**
+Yes. In September 2025 attackers sent a fake email to the maintainer of very popular npm packages,
+took over his account, and published harmful versions of packages such as `chalk` and `debug`. The
+affected packages are downloaded more than two billion times a week in total. The code tried to steal
+cryptocurrency. If you run `depscan check chalk@5.6.1 -e npm` today, it scores 100 (critical) because
+that version is listed as malicious in the OSV database. Be honest about the limit: depscan relies on
+public reports, so it would not have caught the attack in its first minutes.
 
 **Q2. Why is this needed? Tools like `npm audit` and `pip-audit` already exist.**
 Those tools only report *known* vulnerabilities. A brand-new fake package has none, so they miss

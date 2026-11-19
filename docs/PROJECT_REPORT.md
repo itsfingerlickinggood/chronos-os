@@ -45,6 +45,7 @@ way to answer: *"Which of my dependencies deserve a closer look, and why?"*
 | 2021 | Dependency confusion | A researcher got code running inside dozens of large companies by publishing public packages under their private package names | `NOT_FOUND` |
 | 2021 | `ua-parser-js` (npm) | Maintainer account hijacked; malicious releases ran install scripts | `INSTALL_SCRIPT`, `NEW_PUBLISHER` |
 | 2024 | `xz-utils` | A long-running social-engineering campaign against a single overworked maintainer | `SINGLE_MAINTAINER` |
+| 2025 | `chalk`, `debug` and others (npm) | A phishing email gave attackers the maintainer's account; they published releases that stole cryptocurrency | `MALWARE` (once reported), `UNPINNED` |
 
 ## 3. Objectives
 
@@ -158,11 +159,12 @@ Continuous integration runs the suite on Python 3.11, 3.12 and 3.13.
 ## 8. Results
 
 Scanning the two demo projects in `examples/` (19 dependencies) takes about
-2.5 seconds on a cold cache and produces:
+2.5 seconds on a cold cache and finds 5 critical, 8 high, 1 medium and 5 low-risk packages, including:
 
 | Package | Score | Finding |
 |---|---:|---|
 | `crossenv` | 100 | Malicious-package advisory; typosquat of `cross-env` |
+| `event-stream` 3.3.6 | 100 | The backdoored 2018 release, flagged from its malicious-package advisory |
 | `reqeusts` | 100 | Not on PyPI and one transposition away from `requests` |
 | `axios` 0.21.0 | 89 | 25 known vulnerabilities; release deprecated by its maintainers |
 | `pycrypto` 2.6.1 | 74 | Critical vulnerabilities with no fix; no release in over twelve years |

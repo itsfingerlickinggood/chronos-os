@@ -134,9 +134,10 @@ def _npm(dep: Dependency, fetcher: Fetcher) -> PackageInfo:
 
     info.evaluated_version = info.latest_version
     if dep.version:
+        # Keep evaluating the requested version even if npm no longer serves it: releases
+        # removed for being malicious still have advisories, and that is the one in use.
         info.version_exists = dep.version in all_versions
-        if info.version_exists:
-            info.evaluated_version = dep.version
+        info.evaluated_version = dep.version
     manifest = all_versions.get(info.evaluated_version) or {}
 
     if manifest.get("deprecated"):

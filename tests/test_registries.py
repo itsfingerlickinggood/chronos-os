@@ -79,6 +79,19 @@ def test_npm_unpublished_package_counts_as_missing():
     stub = {"name": "gone", "time": {"unpublished": {"time": "2024-01-01T00:00:00Z"}}}
     assert registries.collect(Dependency("gone", "npm"), FakeFetcher({NPM.format("gone"): stub})).exists is False
 
+    # A single removed version (for example one pulled for being malicious) is still looked up.
+    versions = {"1.0.0": "2021-01-01T00:00:00Z", "1.0.2": "2025-09-10T00:00:00Z"}
+    fetcher = FakeFetcher({
+        NPM.format("widget"): npm_doc(versions),
+        (osv.OSV_URL, "widget"): {"vulns": [{"id": "MAL-2025-1", "summary": "Malicious code in widget (npm)"}]},
+    })
+    info = registries.collect(Dependency("widget", "npm", "1.0.1", "1.0.1", True), fetcher)
+
+    assert info.version_exists is False
+    assert info.evaluated_version == "1.0.1"          # not silently replaced by the latest version
+    assert fetcher.posts[0]["version"] == "1.0.1"     # the removed release is the one looked up
+    assert [v.severity for v in info.vulnerabilities] == ["MALWARE"]
+
 
 def test_direct_url_dependency_makes_no_requests():
     class Exploding:
@@ -94,3 +107,4 @@ def test_find_repo():
     assert registries.find_repo("git+ssh://git@github.com/acme/widget.git") == "github.com/acme/widget"
     assert registries.find_repo({"url": "https://gitlab.com/acme/widget/-/issues"}) == "gitlab.com/acme/widget"
     assert registries.find_repo("https://github.com/sponsors/acme", "https://example.com") is None
+
