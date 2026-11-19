@@ -12,8 +12,9 @@ Everything you need to present this project, in simple language.
   14 questions a teacher might ask, in order: what it is, the problem, a real 2025 attack, how it helps,
   who uses it, how it works, the architecture, what each code file does, the outside tools, the scoring,
   the results, the limits, and how to present it. No coding knowledge is needed to follow it.
-- **Diagrams:** `diagrams/` has seven pictures (what it is, the four tricks, real incidents, the four
-  steps, reading the score, the GitHub guard, project structure) that you can paste into slides or a report.
+- **Diagrams:** `diagrams/` has 14 pictures (what it is, the four tricks, real incidents, the four
+  steps, reading the score, the GitHub guard, project structure, the architecture, what each code file
+  does, following one package, the outside tools, the scoring, and the 2025 attack) that you can paste into slides or a report.
 
 ---
 
