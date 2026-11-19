@@ -5,6 +5,11 @@ Everything you need to present this project, in simple language.
 - **Slides:** `depscan-presentation.pptx` (13 slides, about 12 to 15 minutes). A PDF copy is included as a backup.
 - **Before you present:** put your name, roll number and guide's name on slide 1.
 - Every slide already has speaker notes inside PowerPoint (View → Notes). The same script is below.
+- **Videos:** `videos/1-what-is-depscan.mp4` explains the idea with no technical words, and
+  `videos/2-how-depscan-works.mp4` shows the tool working step by step. Both have voice and captions.
+  Watch them first if any part of the project is unclear, or play them for a non-technical audience.
+- **Diagrams:** `diagrams/` has seven pictures (what it is, the four tricks, real incidents, the four
+  steps, reading the score, the GitHub guard, project structure) that you can paste into slides or a report.
 
 ---
 
