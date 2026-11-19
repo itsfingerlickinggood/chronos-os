@@ -1,0 +1,12 @@
+# Demo manifest for depscan. It is deliberately full of risky choices.
+# DO NOT `pip install -r` this file.
+
+django==2.2.0            # old release with many known vulnerabilities
+requests==2.19.0
+pyyaml==5.3
+flask>=2.0               # healthy, but unpinned
+numpy==1.26.4            # healthy and pinned
+pycrypto==2.6.1          # abandoned since 2013
+reqeusts==0.0.1          # typo of "requests"
+python-dateutils==0.1.0  # one letter away from "python-dateutil"
+acme-internal-billing==1.4.2   # private name that does not exist publicly

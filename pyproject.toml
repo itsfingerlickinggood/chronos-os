@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "depscan"
+version = "1.0.0"
+description = "Supply-chain risk scanner for PyPI and npm dependencies. Zero runtime dependencies."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["security", "supply-chain", "dependencies", "typosquatting", "osv"]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+depscan = "depscan.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["depscan*"]
+
+[tool.setuptools.package-data]
+"depscan.data" = ["*.txt", "*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

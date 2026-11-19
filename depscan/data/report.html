@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__DEPSCAN_TITLE__</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f0f2f5; --border: #dfe3e8;
+    --text: #16191d; --muted: #5f6b7a; --accent: #2456d6;
+    --critical: #b3261e; --high: #c4570a; --medium: #94700a; --low: #1f7a45;
+    --critical-bg: #fde8e6; --high-bg: #fdeede; --medium-bg: #fbf3d3; --low-bg: #e2f4e8;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1216; --surface: #171b21; --surface-2: #1f242c; --border: #2b323c;
+      --text: #e6e9ee; --muted: #98a3b3; --accent: #7aa2ff;
+      --critical: #ff8a80; --high: #ffab66; --medium: #e6c453; --low: #6fcf97;
+      --critical-bg: #3a1a18; --high-bg: #3a2613; --medium-bg: #332b10; --low-bg: #15301f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 16px 56px; }
+  h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 22px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .tile .n { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .tile .l { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+  .tile.critical .n { color: var(--critical); } .tile.high .n { color: var(--high); }
+  .tile.medium .n { color: var(--medium); } .tile.low .n { color: var(--low); }
+  .dist { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin: 14px 0 22px;
+          background: var(--surface-2); }
+  .dist span { display: block; }
+  .dist .critical { background: var(--critical); } .dist .high { background: var(--high); }
+  .dist .medium { background: var(--medium); } .dist .low { background: var(--low); }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  input[type=search], select { background: var(--surface); color: var(--text); border: 1px solid var(--border);
+          border-radius: 8px; padding: 7px 10px; font: inherit; }
+  input[type=search] { flex: 1 1 200px; min-width: 0; }
+  .chip { border: 1px solid var(--border); background: var(--surface); color: var(--muted); border-radius: 999px;
+          padding: 5px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+  .chip[aria-pressed=true] { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .list { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .row { border-top: 1px solid var(--border); }
+  .row:first-child { border-top: 0; }
+  .head { display: grid; grid-template-columns: 92px 64px minmax(0, 1.3fr) minmax(0, 2fr) 20px; gap: 12px;
+          align-items: center; width: 100%; padding: 11px 14px; background: none; border: 0; color: inherit;
+          font: inherit; text-align: left; cursor: pointer; }
+  .head:hover { background: var(--surface-2); }
+  .head:focus-visible, .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600;
+           text-transform: uppercase; letter-spacing: .03em; }
+  .badge.critical { color: var(--critical); background: var(--critical-bg); }
+  .badge.high { color: var(--high); background: var(--high-bg); }
+  .badge.medium { color: var(--medium); background: var(--medium-bg); }
+  .badge.low { color: var(--low); background: var(--low-bg); }
+  .score { font-variant-numeric: tabular-nums; font-weight: 650; }
+  .score small { color: var(--muted); font-weight: 400; }
+  .pkg { min-width: 0; }
+  .pkg .name { font-family: var(--mono); font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+  .pkg .meta { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+  .tag { border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; font-size: 11px; margin-left: 6px;
+         color: var(--muted); font-family: inherit; font-weight: 400; white-space: nowrap; }
+  .reason { color: var(--muted); font-size: 14px; min-width: 0; overflow-wrap: anywhere; }
+  .caret { color: var(--muted); transition: transform .15s; }
+  .row.open .caret { transform: rotate(90deg); }
+  .body { display: none; padding: 4px 14px 16px 118px; }
+  .row.open .body { display: block; }
+  .body h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+             margin: 14px 0 6px; }
+  .signal { display: grid; grid-template-columns: 44px 1fr; gap: 8px; padding: 5px 0; }
+  .signal .w { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+  .signal .d { color: var(--muted); font-size: 13px; }
+  .vuln { font-size: 13px; padding: 4px 0; overflow-wrap: anywhere; }
+  .vuln a { color: var(--accent); font-family: var(--mono); }
+  .sev { font-size: 11px; font-weight: 600; text-transform: uppercase; margin: 0 6px; }
+  .sev.CRITICAL, .sev.MALWARE { color: var(--critical); } .sev.HIGH { color: var(--high); }
+  .sev.MEDIUM, .sev.UNKNOWN { color: var(--medium); } .sev.LOW { color: var(--low); }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 16px;
+           font-size: 13px; }
+  .facts dt { color: var(--muted); font-size: 12px; } .facts dd { margin: 0; overflow-wrap: anywhere; }
+  .facts a { color: var(--accent); }
+  .empty { padding: 28px; text-align: center; color: var(--muted); }
+  details.how { margin-top: 26px; color: var(--muted); font-size: 13px; }
+  details.how summary { cursor: pointer; color: var(--text); }
+  @media (max-width: 720px) {
+    .head { grid-template-columns: 84px 1fr 16px; row-gap: 4px; }
+    .head .score { display: none; }
+    .head .reason { grid-column: 1 / -1; }
+    .body { padding-left: 14px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title"></h1>
+  <p class="sub" id="sub"></p>
+  <section class="tiles" id="tiles" aria-label="Summary"></section>
+  <div class="dist" id="dist" role="img"></div>
+  <div class="controls">
+    <input type="search" id="q" placeholder="Filter packages…" aria-label="Filter packages">
+    <span id="chips"></span>
+    <select id="eco" aria-label="Ecosystem">
+      <option value="">All ecosystems</option><option value="pypi">PyPI</option><option value="npm">npm</option>
+    </select>
+  </div>
+  <section class="list" id="list"></section>
+  <details class="how">
+    <summary>How scores work</summary>
+    <p>Each package starts at 0. Every risk signal adds its listed weight and the total is capped at 100.
+    0–24 is low, 25–49 medium, 50–74 high and 75+ critical. Signals come from public data only: the PyPI and
+    npm registries, the OSV.dev vulnerability database, download statistics and OpenSSF Scorecard via deps.dev.
+    A score is a prompt to look closer, not a verdict.</p>
+  </details>
+</main>
+<script type="application/json" id="data">__DEPSCAN_DATA__</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("data").textContent);
+  var LEVELS = ["critical", "high", "medium", "low"];
+  var state = { q: "", level: "", eco: "" };
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      if (k === "text") node.textContent = attrs[k]; else node.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) { if (c) node.appendChild(c); });
+    return node;
+  }
+  function fmtDate(iso) { return iso ? iso.slice(0, 10) : "unknown"; }
+  function fmtNum(n) { return n == null ? "unknown" : Number(n).toLocaleString("en-US"); }
+
+  document.getElementById("title").textContent = data.title || "Dependency risk report";
+  document.getElementById("sub").textContent =
+    "Generated " + data.generated_at.replace("T", " ").slice(0, 16) + " UTC by depscan " + data.version;
+
+  var s = data.summary, tiles = document.getElementById("tiles"), dist = document.getElementById("dist");
+  tiles.appendChild(el("div", { class: "tile" }, [el("div", { class: "n", text: String(s.total) }),
+    el("div", { class: "l", text: "Packages" })]));
+  LEVELS.forEach(function (lvl) {
+    tiles.appendChild(el("div", { class: "tile " + lvl }, [el("div", { class: "n", text: String(s.by_level[lvl]) }),
+      el("div", { class: "l", text: lvl })]));
+    if (s.total) {
+      var seg = el("span", { class: lvl });
+      seg.style.width = (100 * s.by_level[lvl] / s.total) + "%";
+      dist.appendChild(seg);
+    }
+  });
+  tiles.appendChild(el("div", { class: "tile" }, [el("div", { class: "n", text: String(s.vulnerable) }),
+    el("div", { class: "l", text: "With known vulns" })]));
+  dist.setAttribute("aria-label", LEVELS.map(function (l) { return s.by_level[l] + " " + l; }).join(", "));
+
+  var chips = document.getElementById("chips");
+  [""].concat(LEVELS).forEach(function (lvl) {
+    var chip = el("button", { class: "chip", type: "button", "aria-pressed": String(lvl === ""), text: lvl || "All" });
+    chip.addEventListener("click", function () {
+      state.level = lvl;
+      Array.prototype.forEach.call(chips.children, function (c) { c.setAttribute("aria-pressed", String(c === chip)); });
+      render();
+    });
+    chips.appendChild(chip);
+    chips.appendChild(document.createTextNode(" "));
+  });
+  document.getElementById("q").addEventListener("input", function (e) { state.q = e.target.value.toLowerCase(); render(); });
+  document.getElementById("eco").addEventListener("change", function (e) { state.eco = e.target.value; render(); });
+
+  function facts(r) {
+    var f = r.facts, dl = el("dl", { class: "facts" });
+    function add(label, value, href) {
+      var dd = el("dd");
+      if (href) dd.appendChild(el("a", { href: href, rel: "noopener noreferrer", target: "_blank", text: value }));
+      else dd.textContent = value;
+      dl.appendChild(el("div", {}, [el("dt", { text: label }), dd]));
+    }
+    add("Declared in", r.source || "unknown");
+    add("Declared as", r.spec || "any version");
+    add("Latest version", r.latest_version || "unknown");
+    add("Weekly downloads", fmtNum(f.downloads_weekly));
+    add("First release", fmtDate(f.first_release));
+    add("Latest release", fmtDate(f.latest_release));
+    add("Releases", String(f.release_count || "unknown"));
+    if (f.maintainers != null) add("Maintainers", String(f.maintainers));
+    if (f.scorecard != null) add("OpenSSF Scorecard", f.scorecard.toFixed(1) + " / 10");
+    if (f.repository) add("Repository", f.repository, "https://" + f.repository);
+    return dl;
+  }
+
+  function row(r) {
+    var top = r.signals.length ? r.signals[0].title : "No risk signals";
+    if (r.signals.length > 1) top += " (+" + (r.signals.length - 1) + " more)";
+    var name = el("div", { class: "name", text: r.name });
+    name.appendChild(el("span", { class: "tag", text: r.ecosystem }));
+    if (r.dev) name.appendChild(el("span", { class: "tag", text: "dev" }));
+    if (r.is_new) name.appendChild(el("span", { class: "tag", text: "new" }));
+    var score = el("span", { class: "score", text: String(r.score) });
+    score.appendChild(el("small", { text: "/100" }));
+    var head = el("button", { class: "head", type: "button", "aria-expanded": "false" }, [
+      el("span", {}, [el("span", { class: "badge " + r.level, text: r.level })]),
+      score,
+      el("span", { class: "pkg" }, [name, el("div", { class: "meta", text: r.version || r.spec || "version unknown" })]),
+      el("span", { class: "reason", text: top }),
+      el("span", { class: "caret", "aria-hidden": "true", text: "›" })
+    ]);
+    var body = el("div", { class: "body" });
+    var wrap = el("div", { class: "row" }, [head, body]);
+    head.addEventListener("click", function () {
+      var open = wrap.classList.toggle("open");
+      head.setAttribute("aria-expanded", String(open));
+      if (open && !body.firstChild) fill(body, r);
+    });
+    return wrap;
+  }
+
+  function fill(body, r) {
+    body.appendChild(el("h3", { text: "Risk signals" }));
+    if (!r.signals.length) body.appendChild(el("div", { class: "signal", text: "None found." }));
+    r.signals.forEach(function (sig) {
+      body.appendChild(el("div", { class: "signal" }, [
+        el("span", { class: "w", text: "+" + sig.weight }),
+        el("div", {}, [el("div", { text: sig.title }), sig.detail ? el("div", { class: "d", text: sig.detail }) : null])
+      ]));
+    });
+    if (r.vulnerabilities.length) {
+      body.appendChild(el("h3", { text: "Known vulnerabilities (" + r.vulnerabilities.length + ")" }));
+      r.vulnerabilities.forEach(function (v) {
+        var line = el("div", { class: "vuln" }, [
+          el("a", { href: v.url, rel: "noopener noreferrer", target: "_blank", text: v.id }),
+          el("span", { class: "sev " + v.severity, text: v.severity.toLowerCase() })
+        ]);
+        line.appendChild(document.createTextNode(v.summary + (v.fixed_in ? " — fixed in " + v.fixed_in : "")));
+        body.appendChild(line);
+      });
+    }
+    body.appendChild(el("h3", { text: "Facts" }));
+    body.appendChild(facts(r));
+    if (r.errors.length) {
+      body.appendChild(el("h3", { text: "Incomplete data" }));
+      r.errors.forEach(function (e) { body.appendChild(el("div", { class: "vuln", text: e })); });
+    }
+  }
+
+  function render() {
+    var list = document.getElementById("list");
+    list.textContent = "";
+    var shown = data.results.filter(function (r) {
+      return (!state.level || r.level === state.level) && (!state.eco || r.ecosystem === state.eco) &&
+             (!state.q || r.name.toLowerCase().indexOf(state.q) !== -1);
+    });
+    if (!shown.length) list.appendChild(el("div", { class: "empty", text: "No packages match." }));
+    shown.forEach(function (r) { list.appendChild(row(r)); });
+  }
+  render();
+})();
+</script>
+</body>
+</html>

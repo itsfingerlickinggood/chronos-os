@@ -1,14 +1,14 @@
-# Node and frontend dependencies
-node_modules/
-udf/
-.DS_Store
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-coverage/
-dist/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
 build/
-.cache/
-.env
-.env.*
+dist/
+.pytest_cache/
+.coverage
+site/
+depscan-report.*
+.DS_Store
+.idea/
+.vscode/

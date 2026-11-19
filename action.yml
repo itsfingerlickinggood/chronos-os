@@ -1,0 +1,114 @@
+name: "depscan - Dependency Risk Scanner"
+description: "Scores the supply-chain risk of PyPI and npm dependencies and comments on pull requests that add risky packages."
+branding:
+  icon: shield
+  color: red
+
+inputs:
+  paths:
+    description: "Space-separated manifest files or directories to scan."
+    default: "."
+  fail-on:
+    description: "Fail the job if any reported package is at or above this level: low, medium, high, critical or none."
+    default: "none"
+  only-new:
+    description: "On pull requests, report only dependencies that were added or changed."
+    default: "true"
+  comment:
+    description: "On pull requests, post (and keep updating) a comment with the report."
+    default: "true"
+  output-dir:
+    description: "Directory that receives report.json, report.md and index.html."
+    default: "depscan-report"
+  title:
+    description: "Title of the HTML dashboard."
+    default: "Dependency risk report"
+  python-version:
+    description: "Python version used to run depscan (3.11 or newer)."
+    default: "3.12"
+  github-token:
+    description: "Token used to post the pull request comment."
+    default: ${{ github.token }}
+
+outputs:
+  exit-code:
+    description: "0 when no package reached the fail-on level, 1 otherwise."
+    value: ${{ steps.scan.outputs.exit-code }}
+  report-dir:
+    description: "Directory containing the generated reports."
+    value: ${{ inputs.output-dir }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install depscan
+      shell: bash
+      run: python -m pip install --quiet --disable-pip-version-check "${{ github.action_path }}"
+
+    - name: Scan dependencies
+      id: scan
+      shell: bash
+      env:
+        INPUT_PATHS: ${{ inputs.paths }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_ONLY_NEW: ${{ inputs.only-new }}
+        INPUT_OUTPUT_DIR: ${{ inputs.output-dir }}
+        INPUT_TITLE: ${{ inputs.title }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      run: |
+        read -r -a paths <<< "$INPUT_PATHS"
+        args=(--fail-on "$INPUT_FAIL_ON" --title "$INPUT_TITLE"
+              --json "$INPUT_OUTPUT_DIR/report.json"
+              --markdown "$INPUT_OUTPUT_DIR/report.md"
+              --html "$INPUT_OUTPUT_DIR/index.html")
+
+        # On pull requests, export the base commit so only added/changed dependencies are reported.
+        if [ -n "$BASE_SHA" ] && [ "$INPUT_ONLY_NEW" = "true" ]; then
+          base_dir="$RUNNER_TEMP/depscan-base"
+          mkdir -p "$base_dir"
+          if git fetch --quiet --depth=1 origin "$BASE_SHA" && git archive "$BASE_SHA" | tar -x -C "$base_dir"; then
+            args+=(--baseline-dir "$base_dir" --only-new)
+          else
+            echo "::warning::depscan could not read the base commit; reporting all dependencies."
+          fi
+        fi
+
+        set +e
+        depscan scan "${paths[@]}" "${args[@]}"
+        code=$?
+        set -e
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        if [ -f "$INPUT_OUTPUT_DIR/report.md" ]; then
+          cat "$INPUT_OUTPUT_DIR/report.md" >> "$GITHUB_STEP_SUMMARY"
+        fi
+        if [ "$code" -ge 2 ]; then exit "$code"; fi
+
+    - name: Comment on pull request
+      if: github.event_name == 'pull_request' && inputs.comment == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPORT: ${{ inputs.output-dir }}/report.md
+      run: |
+        [ -f "$REPORT" ] || exit 0
+        existing=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate \
+          --jq '.[] | select(.body | startswith("<!-- depscan-report -->")) | .id' | head -n 1) || existing=""
+        if [ -n "$existing" ]; then
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -F "body=@$REPORT" > /dev/null \
+            || echo "::warning::depscan could not update its pull request comment."
+        else
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$REPORT" \
+            || echo "::warning::depscan could not comment (pull requests from forks get a read-only token)."
+        fi
+
+    - name: Enforce fail-on level
+      if: steps.scan.outputs.exit-code == '1'
+      shell: bash
+      run: |
+        echo "::error::depscan found a package at or above the '${{ inputs.fail-on }}' risk level."
+        exit 1
